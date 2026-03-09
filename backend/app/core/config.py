@@ -81,3 +81,7 @@ def get_settings() -> Settings:
 
 # Instancia global — importa esto en cualquier parte del proyecto
 settings = get_settings()
+
+
+
+

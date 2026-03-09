@@ -95,7 +95,3 @@ def refresh_access_token(refresh_token: str, db: Session) -> TokenResponse:
         refresh_token=create_token(str(user.id), "refresh"),
     )
 
-
-
-# eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwY2NhNzgwOS1jNzBhLTRlNTktYTBiNS1hMmFkZGNiNWMxYWEiLCJ0eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzczMTU1OTAzLCJpYXQiOjE3NzMwNjk1MDN9.iDxl67ErTc0nT_unUj0IrPfY7tfXAr0zI4TYobWiTcg
-# eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwY2NhNzgwOS1jNzBhLTRlNTktYTBiNS1hMmFkZGNiNWMxYWEiLCJ0eXBlIjoicmVmcmVzaCIsImV4cCI6MTc3NTY2MTUwMywiaWF0IjoxNzczMDY5NTAzfQ.2fZ_Is3DGueC5A49o71NKnuJ-7VoB5pLbRI9fREPQKM

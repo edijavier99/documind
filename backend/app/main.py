@@ -5,6 +5,8 @@ import time
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
 from app.core.database import init_db
+from app.services.storage_service import ensure_bucket_exists
+
 
 setup_logging()
 logger = get_logger(__name__)
@@ -50,6 +52,7 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def startup():
         init_db()  # activa pgvector
+        ensure_bucket_exists()
         logger.info("starting documind api", env=settings.APP_ENV, version=settings.VERSION)
 
     @app.on_event("shutdown")
