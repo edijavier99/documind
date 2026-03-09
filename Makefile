@@ -50,7 +50,7 @@ down:
 
 # Reconstruir imágenes (cuando cambias requirements.txt o Dockerfile)
 build:
-	docker compose build
+	docker compose build --no-cache
 
 
 # Ver logs
@@ -115,4 +115,3 @@ reset: clean up
 # Ver estado de los servicios
 status:
 	docker compose ps
-EOF
