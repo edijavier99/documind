@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, UploadFile, File, status
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 from app.core.database import get_db
 from app.api.deps import get_current_user
@@ -68,7 +69,7 @@ def get_documents(
 
 @router.get("/{doc_id}", response_model=DocumentResponse)
 def get_document_by_id(
-    doc_id: str,
+    doc_id: UUID,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -99,3 +100,25 @@ def remove_document(
 ):
     """Elimina un documento y todos sus datos asociados"""
     delete_document(doc_id, current_user, db)
+
+
+
+
+@router.get("/{doc_id}/status")
+def get_document_status(
+    doc_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Devuelve el status actual del documento.
+    El frontend llama a este endpoint cada 3 segundos
+    hasta que el status sea 'ready' o 'failed'.
+    """
+    document = get_document(doc_id, current_user, db)
+    return {
+        "doc_id": doc_id,
+        "status": document.status,
+        "doc_type": document.doc_type,
+        "page_count": document.page_count,
+    }

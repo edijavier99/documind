@@ -76,7 +76,7 @@ def get_document(doc_id: str, owner: User, db: Session) -> Document:
     Obtiene un documento verificando que pertenece al usuario.
     """
     try:
-        doc_uuid = uuid.UUID(doc_id)
+        doc_uuid = uuid.UUID(str(doc_id))
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
