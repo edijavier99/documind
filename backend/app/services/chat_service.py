@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 import uuid
-
+from typing import Generator
+import json
 from app.models.chat import ChatSession, ChatMessage, MessageRole
 from app.services.rag_service import (
     hybrid_search,
@@ -8,7 +9,7 @@ from app.services.rag_service import (
     build_context,
     get_document_for_chat,
 )
-from app.services.llm_service import generate_response
+from app.services.llm_service import generate_response,generate_response_stream
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -124,3 +125,78 @@ def ask_document(
         "sources": sources,
         "session_id": str(session.id),
     }
+
+
+
+def ask_document_stream(
+    query: str,
+    document_id: str,
+    user_id: str,
+    db: Session,
+) -> Generator[str, None, None]:
+    """
+    Versión streaming del pipeline RAG.
+
+    Yields eventos SSE con este formato:
+        data: {"type": "sources", "data": [...]}
+        data: {"type": "token", "data": "Hola"}
+        data: {"type": "token", "data": " mundo"}
+        data: {"type": "done", "data": ""}
+
+    El frontend escucha estos eventos y los va pintando.
+    """
+    # ── 1. RAG: busca chunks relevantes ──────────────────────────
+    get_document_for_chat(document_id, user_id, db)
+
+    chunks = hybrid_search(query=query, document_id=document_id, db=db, top_k=10)
+
+    if not chunks:
+        yield _sse_event("error", "I couldn't find relevant information in this document.")
+        return
+
+    reranked = rerank_chunks(query, chunks)
+    context, sources = build_context(reranked[:5])
+
+    # ── 2. Manda las fuentes primero ──────────────────────────────
+    # El frontend puede mostrar las fuentes mientras el LLM responde
+    yield _sse_event("sources", sources)
+
+    # ── 3. Stream de tokens del LLM ───────────────────────────────
+    full_answer = ""
+
+    for token in generate_response_stream(query, context):
+        full_answer += token
+        yield _sse_event("token", token)
+
+    # ── 4. Guarda en DB cuando termina el stream ──────────────────
+    session = get_or_create_session(document_id, user_id, db)
+
+    db.add(ChatMessage(
+        session_id=session.id,
+        role=MessageRole.USER,
+        content=query,
+        sources=[],
+    ))
+    db.add(ChatMessage(
+        session_id=session.id,
+        role=MessageRole.ASSISTANT,
+        content=full_answer,
+        sources=sources,
+    ))
+    db.commit()
+
+    # ── 5. Señal de fin del stream ────────────────────────────────
+    yield _sse_event("done", {"session_id": str(session.id)})
+
+
+def _sse_event(event_type: str, data) -> str:
+    """
+    Formatea un evento SSE.
+
+    El formato SSE es:
+        data: {json}\n\n
+
+    El doble salto de línea indica el fin del evento.
+    """
+    payload = json.dumps({"type": event_type, "data": data})
+    return f"data: {payload}\n\n"
