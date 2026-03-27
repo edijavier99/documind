@@ -35,6 +35,7 @@ async def upload_document(
     """
     file_content = await file.read()
 
+
     document = create_document(
         file_content=file_content,
         filename=file.filename,
@@ -121,4 +122,36 @@ def get_document_status(
         "status": document.status,
         "doc_type": document.doc_type,
         "page_count": document.page_count,
+    }
+
+
+
+
+@router.get("/{doc_id}/classification")
+def get_classification(
+    doc_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Devuelve la clasificación detallada del documento
+    con las probabilidades de cada tipo.
+    Útil para debugging y para mostrar en el frontend.
+    """
+    from app.ml.classifier import get_classification_details
+    from app.services.storage_service import download_file
+    from app.services.document_processor import extract_text
+
+    document = get_document(doc_id, current_user, db)
+
+    # Descarga y extrae texto para reclasificar
+    file_content = download_file(document.s3_key)
+    text, _ = extract_text(file_content, document.mime_type)
+
+    details = get_classification_details(text)
+
+    return {
+        "doc_id": doc_id,
+        "current_type": document.doc_type,
+        "classification": details,
     }

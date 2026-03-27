@@ -115,3 +115,8 @@ reset: clean up
 # Ver estado de los servicios
 status:
 	docker compose ps
+
+
+train-classifier:
+	docker compose exec api python -c "from app.ml.classifier import train_classifier; train_classifier()"
+	@echo "✅ Classifier trained and saved"
